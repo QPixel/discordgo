@@ -148,6 +148,7 @@ func (b Button) MarshalJSON() ([]byte, error) {
 func (b Button) Type() ComponentType {
 	return ButtonComponent
 }
+
 // SelectMenuOption represents an option for a select menu.
 type SelectMenuOption struct {
 	Label       string         `json:"label,omitempty"`

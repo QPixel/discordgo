@@ -89,7 +89,7 @@ func main() {
 		pollVotesMtx.Lock()
 		defer pollVotesMtx.Unlock()
 		pollVotes = make(map[string]MessageVoteStats)
-  })
+	})
 	// Components are part of interactions, so we register InteractionCreate handler
 	s.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if i.Type == discordgo.InteractionApplicationCommand {

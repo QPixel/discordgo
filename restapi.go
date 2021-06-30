@@ -2332,7 +2332,6 @@ func (s *Session) WebhookMessageDelete(webhookID, token, messageID string) (err 
 	return
 }
 
-
 // MessageReactionAdd creates an emoji reaction to a message.
 // channelID : The channel ID.
 // messageID : The message ID.
