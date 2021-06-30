@@ -2236,7 +2236,24 @@ func (s *Session) WebhookExecute(webhookID, token string, wait bool, data *Webho
 	return
 }
 
-// WebhookMessageEdit edits a webhook message and returns a new one.
+// WebhookMessage gets a webhook message.
+// webhookID : The ID of a webhook
+// token     : The auth token for the webhook
+// messageID : The ID of message to get
+func (s *Session) WebhookMessage(webhookID, token, messageID string) (message *Message, err error) {
+	uri := EndpointWebhookMessage(webhookID, token, messageID)
+
+	body, err := s.RequestWithBucketID("GET", uri, nil, EndpointWebhookToken("", ""))
+	if err != nil {
+		return
+	}
+
+	err = json.Unmarshal(body, &message)
+
+	return
+}
+
+// WebhookMessageEdit edits a webhook message.
 // webhookID : The ID of a webhook
 // token     : The auth token for the webhook
 // messageID : The ID of message to edit
@@ -2315,22 +2332,6 @@ func (s *Session) WebhookMessageDelete(webhookID, token, messageID string) (err 
 	return
 }
 
-// WebhookMessage retrieves and returnes the message sent by a webhook.
-// webhookID : The webhook ID
-// token     : The auth token for the webhook
-// messageID : The ID of a message to retrieve
-func (s *Session) WebhookMessage(webhookID, token, messageID string) (st *Message, err error) {
-	uri := EndpointWebhookMessage(webhookID, token, messageID)
-
-	response, err := s.RequestWithBucketID("GET", uri, nil, uri)
-
-	if err != nil {
-		return
-	}
-
-	err = unmarshal(response, &st)
-	return
-}
 
 // MessageReactionAdd creates an emoji reaction to a message.
 // channelID : The channel ID.
@@ -2630,19 +2631,19 @@ func (s *Session) InteractionRespond(interaction *Interaction, resp *Interaction
 	return err
 }
 
+// InteractionResponse gets the response to an interaction.
+// appID       : The application ID.
+// interaction : Interaction instance.
+func (s *Session) InteractionResponse(appID string, interaction *Interaction) (*Message, error) {
+	return s.WebhookMessage(appID, interaction.Token, "@original")
+}
+
 // InteractionResponseEdit edits the response to an interaction.
 // appID       : The application ID.
 // interaction : Interaction instance.
 // newresp     : Updated response message data.
 func (s *Session) InteractionResponseEdit(appID string, interaction *Interaction, newresp *WebhookEdit) (*Message, error) {
 	return s.WebhookMessageEdit(appID, interaction.Token, "@original", newresp)
-}
-
-// InteractionResponse retrieves and returns the interaction response message.
-// appID       : The application ID.
-// interaction : Interaction instance.
-func (s *Session) InteractionResponse(appID string, interaction *Interaction) (*Message, error) {
-	return s.WebhookMessage(appID, interaction.Token, "@original")
 }
 
 // InteractionResponseDelete deletes the response to an interaction.

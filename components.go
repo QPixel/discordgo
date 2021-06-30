@@ -25,13 +25,13 @@ type unmarshalableMessageComponent struct {
 }
 
 // UnmarshalJSON is a helper function to unmarshal MessageComponent object.
-func (umc *unmarshalableMessageComponent) UnmarshalJSON(src []byte) (err error) {
+func (umc *unmarshalableMessageComponent) UnmarshalJSON(src []byte) error {
 	var v struct {
 		Type ComponentType `json:"type"`
 	}
-	err = json.Unmarshal(src, &v)
+	err := json.Unmarshal(src, &v)
 	if err != nil {
-		return
+		return err
 	}
 
 	var data MessageComponent
@@ -46,10 +46,10 @@ func (umc *unmarshalableMessageComponent) UnmarshalJSON(src []byte) (err error) 
 		data = v
 	}
 	if err != nil {
-		return
+		return err
 	}
 	umc.MessageComponent = data
-	return
+	return err
 }
 
 // ActionsRow is a container for components within one row.
@@ -71,23 +71,23 @@ func (r ActionsRow) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON is a helper function to unmarshal Actions Row.
-func (r *ActionsRow) UnmarshalJSON(data []byte) (err error) {
+func (r *ActionsRow) UnmarshalJSON(data []byte) error {
 	var v struct {
 		RawComponents []unmarshalableMessageComponent `json:"components"`
 	}
-	err = json.Unmarshal(data, &v)
+	err := json.Unmarshal(data, &v)
 	if err != nil {
-		return
+		return err
 	}
 	r.Components = make([]MessageComponent, len(v.RawComponents))
 	for i, v := range v.RawComponents {
 		r.Components[i] = v.MessageComponent
 	}
-	return
+	return err
 }
 
 // Type is a method to get the type of a component.
-func (ActionsRow) Type() ComponentType {
+func (r ActionsRow) Type() ComponentType {
 	return ActionsRowComponent
 }
 
@@ -108,7 +108,7 @@ const (
 	LinkButton ButtonStyle = 5
 )
 
-// ComponentEmoji represents button emoji, if it does have one.
+// ComponentEmoji represents component emoji, if it does have one.
 type ComponentEmoji struct {
 	Name     string `json:"name,omitempty"`
 	ID       string `json:"id,omitempty"`
@@ -117,13 +117,13 @@ type ComponentEmoji struct {
 
 // Button represents button component.
 type Button struct {
-	Label    string         `json:"label"`
-	Style    ButtonStyle    `json:"style"`
-	Disabled bool           `json:"disabled"`
-	Emoji    ComponentEmoji `json:"emoji"`
+	Label    string      `json:"label"`
+	Style    ButtonStyle `json:"style"`
+	Disabled bool        `json:"disabled"`
+	Emoji    ButtonEmoji `json:"emoji"`
 
-	// NOTE: Only button with LinkButton style can have link. Also, Link is mutually exclusive with CustomID.
-	Link     string `json:"url,omitempty"`
+	// NOTE: Only button with LinkButton style can have link. Also, URL is mutually exclusive with CustomID.
+	URL      string `json:"url,omitempty"`
 	CustomID string `json:"custom_id,omitempty"`
 }
 
@@ -145,10 +145,9 @@ func (b Button) MarshalJSON() ([]byte, error) {
 }
 
 // Type is a method to get the type of a component.
-func (Button) Type() ComponentType {
+func (b Button) Type() ComponentType {
 	return ButtonComponent
 }
-
 // SelectMenuOption represents an option for a select menu.
 type SelectMenuOption struct {
 	Label       string         `json:"label,omitempty"`
