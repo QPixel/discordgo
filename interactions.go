@@ -134,7 +134,6 @@ func (i *Interaction) UnmarshalJSON(raw []byte) error {
 
 // MessageComponentData is helper function to assert the inner InteractionData to MessageComponentInteractionData.
 // Make sure to check that the Type of the interaction is InteractionMessageComponent before calling.
-
 func (i Interaction) MessageComponentData() (data MessageComponentInteractionData) {
 	return i.Data.(MessageComponentInteractionData)
 }
