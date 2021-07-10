@@ -270,8 +270,7 @@ type MessageAllowedMentions struct {
 	// AllowedMentionTypeUsers in the Parse slice.
 	Users []string `json:"users,omitempty"`
 
-	// A boolean to control if the message will mention the
-	// the user being replied to
+	// A boolean to control if the message will mention the the user being replied to
 	RepliedUser bool `json:"replied_user,omitempty"`
 }
 
