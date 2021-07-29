@@ -14,14 +14,30 @@ import (
 // InteractionDeadline is the time allowed to respond to an interaction.
 const InteractionDeadline = time.Second * 3
 
+// ApplicationCommandType represents the type of application command.
+type ApplicationCommandType uint8
+
+// Application command types
+const (
+	// ChatApplicationCommand is default command type. They are slash commands (i.e. called directly from the chat).
+	ChatApplicationCommand ApplicationCommandType = 1
+	// UserApplicationCommand adds command to user context menu.
+	UserApplicationCommand ApplicationCommandType = 2
+	// MessageApplicationCommand adds command to message context menu.
+	MessageApplicationCommand ApplicationCommandType = 3
+)
+
 // ApplicationCommand represents an application's slash command.
 type ApplicationCommand struct {
-	ID            string                      `json:"id,omitempty"`
-	ApplicationID string                      `json:"application_id,omitempty"`
-	Name          string                      `json:"name"`
-	Description   string                      `json:"description,omitempty"`
-	Version       string                      `json:"version,omitempty"`
-	Options       []*ApplicationCommandOption `json:"options"`
+	ID            string                 `json:"id,omitempty"`
+	ApplicationID string                 `json:"application_id,omitempty"`
+	Type          ApplicationCommandType `json:"type,omitempty"`
+	Name          string                 `json:"name"`
+	// NOTE: Chat commands only. Otherwise it mustn't be set.
+	Description string `json:"description,omitempty"`
+	Version     string `json:"version,omitempty"`
+	// NOTE: Chat commands only. Otherwise it mustn't be set.
+	Options []*ApplicationCommandOption `json:"options"`
 }
 
 // ApplicationCommandOptionType indicates the type of a slash command's option.
@@ -78,7 +94,7 @@ type Interaction struct {
 	ChannelID string          `json:"channel_id"`
 
 	// The message on which interaction was used.
-	// NOTE: this field is only filled when component triggered the interaction. Otherwise it will be nil.
+	// NOTE: this field is only filled when a button click triggered the interaction. Otherwise it will be nil.
 	Message *Message `json:"message"`
 
 	// The member who invoked this interaction.
@@ -154,10 +170,15 @@ type ApplicationCommandInteractionData struct {
 	ID       string                                     `json:"id"`
 	Name     string                                     `json:"name"`
 	Resolved *ApplicationCommandInteractionDataResolved `json:"resolved"`
-	Options  []*ApplicationCommandInteractionDataOption `json:"options"`
+
+	// Slash command options
+	Options []*ApplicationCommandInteractionDataOption `json:"options"`
+	// Target (user/message) id on which context menu command was called.
+	// The details are stored in Resolved according to command type.
+	TargetID string `json:"target_id"`
 }
 
-// ApplicationCommandInteractionDataResolved contains resolved data for command arguments.
+// ApplicationCommandInteractionDataResolved contains resolved data of command execution.
 // Partial Member objects are missing user, deaf and mute fields.
 // Partial Channel objects only have id, name, type and permissions fields.
 type ApplicationCommandInteractionDataResolved struct {
@@ -165,6 +186,7 @@ type ApplicationCommandInteractionDataResolved struct {
 	Members  map[string]*Member  `json:"members"`
 	Roles    map[string]*Role    `json:"roles"`
 	Channels map[string]*Channel `json:"channels"`
+	Messages map[string]*Message `json:"messages"`
 }
 
 // Type returns the type of interaction data.
@@ -340,9 +362,7 @@ type InteractionResponseData struct {
 	Components      []MessageComponent      `json:"components"`
 	Embeds          []*MessageEmbed         `json:"embeds,omitempty"`
 	AllowedMentions *MessageAllowedMentions `json:"allowed_mentions,omitempty"`
-
-	// NOTE: Undocumented feature, be careful with it.
-	Flags uint64 `json:"flags,omitempty"`
+	Flags           uint64                  `json:"flags,omitempty"`
 }
 
 // VerifyInteraction implements message verification of the discord interactions api

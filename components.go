@@ -108,8 +108,8 @@ const (
 	LinkButton ButtonStyle = 5
 )
 
-// ComponentEmoji represents component emoji, if it does have one.
-type ComponentEmoji struct {
+// ButtonEmoji represents button emoji, if it does have one.
+type ButtonEmoji struct {
 	Name     string `json:"name,omitempty"`
 	ID       string `json:"id,omitempty"`
 	Animated bool   `json:"animated,omitempty"`
@@ -117,10 +117,10 @@ type ComponentEmoji struct {
 
 // Button represents button component.
 type Button struct {
-	Label    string         `json:"label"`
-	Style    ButtonStyle    `json:"style"`
-	Disabled bool           `json:"disabled"`
-	Emoji    ComponentEmoji `json:"emoji"`
+	Label    string      `json:"label"`
+	Style    ButtonStyle `json:"style"`
+	Disabled bool        `json:"disabled"`
+	Emoji    ButtonEmoji `json:"emoji"`
 
 	// NOTE: Only button with LinkButton style can have link. Also, URL is mutually exclusive with CustomID.
 	URL      string `json:"url,omitempty"`
