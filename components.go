@@ -2,6 +2,7 @@ package discordgo
 
 import (
 	"encoding/json"
+	"fmt"
 )
 
 // ComponentType is type of component.
@@ -34,22 +35,26 @@ func (umc *unmarshalableMessageComponent) UnmarshalJSON(src []byte) error {
 		return err
 	}
 
-	var data MessageComponent
 	switch v.Type {
 	case ActionsRowComponent:
-		v := ActionsRow{}
-		err = json.Unmarshal(src, &v)
-		data = v
+		umc.MessageComponent = &ActionsRow{}
 	case ButtonComponent:
-		v := Button{}
-		err = json.Unmarshal(src, &v)
-		data = v
+		umc.MessageComponent = &Button{}
+	case SelectMenuComponent:
+		umc.MessageComponent = &SelectMenu{}
+	default:
+		return fmt.Errorf("unknown component type: %d", v.Type)
 	}
+	return json.Unmarshal(src, umc.MessageComponent)
+}
+
+func MessageComponentFromJSON(b []byte) (MessageComponent, error) {
+	var u unmarshalableMessageComponent
+	err := u.UnmarshalJSON(b)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("failed to unmarshal into MessageComponent: %w", err)
 	}
-	umc.MessageComponent = data
-	return err
+	return u.MessageComponent, nil
 }
 
 // ActionsRow is a container for components within one row.
@@ -83,6 +88,7 @@ func (r *ActionsRow) UnmarshalJSON(data []byte) error {
 	for i, v := range v.RawComponents {
 		r.Components[i] = v.MessageComponent
 	}
+
 	return err
 }
 
@@ -117,9 +123,9 @@ type ComponentEmoji struct {
 
 // Button represents button component.
 type Button struct {
-	Label    string      `json:"label"`
-	Style    ButtonStyle `json:"style"`
-	Disabled bool        `json:"disabled"`
+	Label    string         `json:"label"`
+	Style    ButtonStyle    `json:"style"`
+	Disabled bool           `json:"disabled"`
 	Emoji    ComponentEmoji `json:"emoji"`
 
 	// NOTE: Only button with LinkButton style can have link. Also, URL is mutually exclusive with CustomID.
@@ -145,7 +151,7 @@ func (b Button) MarshalJSON() ([]byte, error) {
 }
 
 // Type is a method to get the type of a component.
-func (b Button) Type() ComponentType {
+func (Button) Type() ComponentType {
 	return ButtonComponent
 }
 
