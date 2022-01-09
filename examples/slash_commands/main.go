@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -40,6 +41,10 @@ var (
 			Description: "Basic command",
 		},
 		{
+			Name:        "basic-command-with-files",
+			Description: "Basic command with files",
+		},
+		{
 			Name:        "options",
 			Description: "Command for demonstrating options",
 			Options: []*discordgo.ApplicationCommandOption{
@@ -71,7 +76,12 @@ var (
 					Type:        discordgo.ApplicationCommandOptionChannel,
 					Name:        "channel-option",
 					Description: "Channel option",
-					Required:    false,
+					// Channel type mask
+					ChannelTypes: []discordgo.ChannelType{
+						discordgo.ChannelTypeGuildText,
+						discordgo.ChannelTypeGuildVoice,
+					},
+					Required: false,
 				},
 				{
 					Type:        discordgo.ApplicationCommandOptionUser,
@@ -157,6 +167,21 @@ var (
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
 					Content: "Hey there! Congratulations, you just executed your first slash command",
+				},
+			})
+		},
+		"basic-command-with-files": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Hey there! Congratulations, you just executed your first slash command with a file in the response",
+					Files: []*discordgo.File{
+						{
+							ContentType: "text/plain",
+							Name:        "test.txt",
+							Reader:      strings.NewReader("Hello Discord!!"),
+						},
+					},
 				},
 			})
 		},
