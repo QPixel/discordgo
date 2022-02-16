@@ -140,8 +140,8 @@ type Message struct {
 	// be checked by performing a bitwise AND between this int and the flag.
 	Flags MessageFlags `json:"flags"`
 
-	// The thread that was started from this message, includes thread member object
-	Thread *Channel `json:"thread,omitempty"`
+	// An array of Sticker objects, if any were sent.
+	StickerItems []*Sticker `json:"sticker_items"`
 }
 
 // UnmarshalJSON is a helper function to unmarshal the Message.
@@ -187,11 +187,24 @@ type MessageFlags int
 
 // Valid MessageFlags values
 const (
-	MessageFlagsCrossPosted          MessageFlags = 1 << 0
-	MessageFlagsIsCrossPosted        MessageFlags = 1 << 1
-	MessageFlagsSupressEmbeds        MessageFlags = 1 << 2
+	// MessageFlagsCrossPosted This message has been published to subscribed channels (via Channel Following).
+	MessageFlagsCrossPosted MessageFlags = 1 << 0
+	// MessageFlagsIsCrossPosted this message originated from a message in another channel (via Channel Following).
+	MessageFlagsIsCrossPosted MessageFlags = 1 << 1
+	// MessageFlagsSupressEmbeds do not include any embeds when serializing this message.
+	MessageFlagsSupressEmbeds MessageFlags = 1 << 2
+	// MessageFlagsSourceMessageDeleted the source message for this crosspost has been deleted (via Channel Following).
 	MessageFlagsSourceMessageDeleted MessageFlags = 1 << 3
-	MessageFlagsUrgent               MessageFlags = 1 << 4
+	// MessageFlagsUrgent this message came from the urgent message system.
+	MessageFlagsUrgent MessageFlags = 1 << 4
+	// MessageFlagsHasThread this message has an associated thread, with the same id as the message.
+	MessageFlagsHasThread MessageFlags = 1 << 5
+	// MessageFlagsEphemeral this message is only visible to the user who invoked the Interaction.
+	MessageFlagsEphemeral MessageFlags = 1 << 6
+	// MessageFlagsLoading this message is an Interaction Response and the bot is "thinking".
+	MessageFlagsLoading MessageFlags = 1 << 7
+	// MessageFlagsFailedToMentionSomeRolesInThread this message failed to mention some roles and add their members to the thread.
+	MessageFlagsFailedToMentionSomeRolesInThread MessageFlags = 1 << 8
 )
 
 // File stores info about files you e.g. send in messages.
@@ -199,6 +212,51 @@ type File struct {
 	Name        string
 	ContentType string
 	Reader      io.Reader
+}
+
+// StickerFormat is the file format of the Sticker.
+type StickerFormat int
+
+// Defines all known Sticker types.
+const (
+	StickerFormatTypePNG    StickerFormat = 1
+	StickerFormatTypeAPNG   StickerFormat = 2
+	StickerFormatTypeLottie StickerFormat = 3
+)
+
+// StickerType is the type of sticker.
+type StickerType int
+
+// Defines Sticker types.
+const (
+	StickerTypeStandard StickerType = 1
+	StickerTypeGuild    StickerType = 2
+)
+
+// Sticker represents a sticker object that can be sent in a Message.
+type Sticker struct {
+	ID          string        `json:"id"`
+	PackID      string        `json:"pack_id"`
+	Name        string        `json:"name"`
+	Description string        `json:"description"`
+	Tags        string        `json:"tags"`
+	Type        StickerType   `json:"type"`
+	FormatType  StickerFormat `json:"format_type"`
+	Available   bool          `json:"available"`
+	GuildID     string        `json:"guild_id"`
+	User        *User         `json:"user"`
+	SortValue   int           `json:"sort_value"`
+}
+
+// StickerPack represents a pack of standard stickers.
+type StickerPack struct {
+	ID             string    `json:"id"`
+	Stickers       []Sticker `json:"stickers"`
+	Name           string    `json:"name"`
+	SKUID          string    `json:"sku_id"`
+	CoverStickerID string    `json:"cover_sticker_id"`
+	Description    string    `json:"description"`
+	BannerAssetID  string    `json:"banner_asset_id"`
 }
 
 // MessageSend stores all parameters you can send with ChannelMessageSendComplex.
