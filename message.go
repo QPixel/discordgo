@@ -135,10 +135,18 @@ type Message struct {
 	// If the field exists but is null, the referenced message was deleted.
 	ReferencedMessage *Message `json:"referenced_message"`
 
+	// Is sent when the message is a response to an Interaction, without an existing message.
+	// This means responses to message component interactions do not include this property,
+	// instead including a MessageReference, as components exist on preexisting messages.
+	Interaction *MessageInteraction `json:"interaction"`
+
 	// The flags of the message, which describe extra features of a message.
 	// This is a combination of bit masks; the presence of a certain permission can
 	// be checked by performing a bitwise AND between this int and the flag.
 	Flags MessageFlags `json:"flags"`
+
+	// The thread that was started from this message, includes thread member object
+	Thread *Channel `json:"thread,omitempty"`
 
 	// An array of Sticker objects, if any were sent.
 	StickerItems []*Sticker `json:"sticker_items"`
@@ -212,51 +220,6 @@ type File struct {
 	Name        string
 	ContentType string
 	Reader      io.Reader
-}
-
-// StickerFormat is the file format of the Sticker.
-type StickerFormat int
-
-// Defines all known Sticker types.
-const (
-	StickerFormatTypePNG    StickerFormat = 1
-	StickerFormatTypeAPNG   StickerFormat = 2
-	StickerFormatTypeLottie StickerFormat = 3
-)
-
-// StickerType is the type of sticker.
-type StickerType int
-
-// Defines Sticker types.
-const (
-	StickerTypeStandard StickerType = 1
-	StickerTypeGuild    StickerType = 2
-)
-
-// Sticker represents a sticker object that can be sent in a Message.
-type Sticker struct {
-	ID          string        `json:"id"`
-	PackID      string        `json:"pack_id"`
-	Name        string        `json:"name"`
-	Description string        `json:"description"`
-	Tags        string        `json:"tags"`
-	Type        StickerType   `json:"type"`
-	FormatType  StickerFormat `json:"format_type"`
-	Available   bool          `json:"available"`
-	GuildID     string        `json:"guild_id"`
-	User        *User         `json:"user"`
-	SortValue   int           `json:"sort_value"`
-}
-
-// StickerPack represents a pack of standard stickers.
-type StickerPack struct {
-	ID             string    `json:"id"`
-	Stickers       []Sticker `json:"stickers"`
-	Name           string    `json:"name"`
-	SKUID          string    `json:"sku_id"`
-	CoverStickerID string    `json:"cover_sticker_id"`
-	Description    string    `json:"description"`
-	BannerAssetID  string    `json:"banner_asset_id"`
 }
 
 // MessageSend stores all parameters you can send with ChannelMessageSendComplex.
@@ -362,14 +325,15 @@ type MessageAllowedMentions struct {
 
 // A MessageAttachment stores data for message attachments.
 type MessageAttachment struct {
-	ID        string `json:"id"`
-	URL       string `json:"url"`
-	ProxyURL  string `json:"proxy_url"`
-	Filename  string `json:"filename"`
-	Width     int    `json:"width"`
-	Height    int    `json:"height"`
-	Size      int    `json:"size"`
-	Ephemeral bool   `json:"ephemeral"`
+	ID          string `json:"id"`
+	URL         string `json:"url"`
+	ProxyURL    string `json:"proxy_url"`
+	Filename    string `json:"filename"`
+	ContentType string `json:"content_type"`
+	Width       int    `json:"width"`
+	Height      int    `json:"height"`
+	Size        int    `json:"size"`
+	Ephemeral   bool   `json:"ephemeral"`
 }
 
 // MessageEmbedFooter is a part of a MessageEmbed struct.
@@ -566,4 +530,15 @@ func (m *Message) ContentWithMoreMentionsReplaced(s *Session) (content string, e
 		return "#" + channel.Name
 	})
 	return
+}
+
+// MessageInteraction contains information about the application command interaction which generated the message.
+type MessageInteraction struct {
+	ID   string          `json:"id"`
+	Type InteractionType `json:"type"`
+	Name string          `json:"name"`
+	User *User           `json:"user"`
+
+	// Member is only present when the interaction is from a guild.
+	Member *Member `json:"member"`
 }

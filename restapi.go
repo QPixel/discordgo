@@ -642,6 +642,8 @@ func (s *Session) GuildMember(guildID, userID string) (st *Member, err error) {
 	}
 
 	err = unmarshal(body, &st)
+	// The returned object doesn't have the GuildID attribute so we will set it here.
+	st.GuildID = guildID
 	return
 }
 
@@ -1265,6 +1267,111 @@ func (s *Session) GuildEmojiEdit(guildID, emojiID, name string, roles []string) 
 func (s *Session) GuildEmojiDelete(guildID, emojiID string) (err error) {
 
 	_, err = s.RequestWithBucketID("DELETE", EndpointGuildEmoji(guildID, emojiID), nil, EndpointGuildEmojis(guildID))
+	return
+}
+
+// GuildTemplate returns a GuildTemplate for the given code
+// templateCode: The Code of a GuildTemplate
+func (s *Session) GuildTemplate(templateCode string) (st *GuildTemplate, err error) {
+
+	body, err := s.RequestWithBucketID("GET", EndpointGuildTemplate(templateCode), nil, EndpointGuildTemplate(templateCode))
+	if err != nil {
+		return
+	}
+
+	err = unmarshal(body, &st)
+	return
+}
+
+// GuildCreateWithTemplate creates a guild based on a GuildTemplate
+// templateCode: The Code of a GuildTemplate
+// name: The name of the guild (2-100) characters
+// icon: base64 encoded 128x128 image for the guild icon
+func (s *Session) GuildCreateWithTemplate(templateCode, name, icon string) (st *Guild, err error) {
+
+	data := struct {
+		Name string `json:"name"`
+		Icon string `json:"icon"`
+	}{name, icon}
+
+	body, err := s.RequestWithBucketID("POST", EndpointGuildTemplate(templateCode), data, EndpointGuildTemplate(templateCode))
+	if err != nil {
+		return
+	}
+
+	err = unmarshal(body, &st)
+	return
+}
+
+// GuildTemplates returns all of GuildTemplates
+// guildID: The ID of the guild
+func (s *Session) GuildTemplates(guildID string) (st []*GuildTemplate, err error) {
+
+	body, err := s.RequestWithBucketID("GET", EndpointGuildTemplates(guildID), nil, EndpointGuildTemplates(guildID))
+	if err != nil {
+		return
+	}
+
+	err = unmarshal(body, &st)
+	return
+}
+
+// GuildTemplateCreate creates a template for the guild
+// guildID: The ID of the guild
+// name: The name of the template (1-100 characters)
+// description: The description for the template (0-120 characters)
+func (s *Session) GuildTemplateCreate(guildID, name, description string) (st *GuildTemplate) {
+
+	data := struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
+	}{name, description}
+
+	body, err := s.RequestWithBucketID("POST", EndpointGuildTemplates(guildID), data, EndpointGuildTemplates(guildID))
+	if err != nil {
+		return
+	}
+
+	err = unmarshal(body, &st)
+	return
+}
+
+// GuildTemplateSync syncs the template to the guild's current state
+// guildID: The ID of the guild
+// templateCode: The code of the template
+func (s *Session) GuildTemplateSync(guildID, templateCode string) (err error) {
+
+	_, err = s.RequestWithBucketID("PUT", EndpointGuildTemplateSync(guildID, templateCode), nil, EndpointGuildTemplateSync(guildID, ""))
+	return
+}
+
+// GuildTemplateEdit modifies the template's metadata
+// guildID: The ID of the guild
+// templateCode: The code of the template
+// name: The name of the template (1-100 characters)
+// description: The description for the template (0-120 characters)
+func (s *Session) GuildTemplateEdit(guildID, templateCode, name, description string) (st *GuildTemplate, err error) {
+
+	data := struct {
+		Name        string `json:"name,omitempty"`
+		Description string `json:"description,omitempty"`
+	}{name, description}
+
+	body, err := s.RequestWithBucketID("PATCH", EndpointGuildTemplateSync(guildID, templateCode), data, EndpointGuildTemplateSync(guildID, ""))
+	if err != nil {
+		return
+	}
+
+	err = unmarshal(body, &st)
+	return
+}
+
+// GuildTemplateDelete deletes the template
+// guildID: The ID of the guild
+// templateCode: The code of the template
+func (s *Session) GuildTemplateDelete(guildID, templateCode string) (err error) {
+
+	_, err = s.RequestWithBucketID("DELETE", EndpointGuildTemplateSync(guildID, templateCode), nil, EndpointGuildTemplateSync(guildID, ""))
 	return
 }
 
@@ -2036,7 +2143,7 @@ func (s *Session) WebhookExecute(webhookID, token string, wait bool, data *Webho
 // wait     : Waits for server confirmation of message send and ensures that the return struct is populated (it is nil otherwise)
 // threadID :	Sends a message to the specified thread within a webhook's channel. The thread will automatically be unarchived.
 func (s *Session) WebhookThreadExecute(webhookID, token string, wait bool, threadID string, data *WebhookParams) (st *Message, err error) {
-	return s.webhookExecute(webhookID, token, wait, "", data)
+	return s.webhookExecute(webhookID, token, wait, threadID, data)
 }
 
 // WebhookMessage gets a webhook message.
@@ -2182,6 +2289,226 @@ func (s *Session) MessageReactions(channelID, messageID, emojiID string, limit i
 	}
 
 	err = unmarshal(body, &st)
+	return
+}
+
+// ------------------------------------------------------------------------------------------------
+// Functions specific to threads
+// ------------------------------------------------------------------------------------------------
+
+// MessageThreadStartComplex creates a new thread from an existing message.
+// channelID : Channel to create thread in
+// messageID : Message to start thread from
+// data : Parameters of the thread
+func (s *Session) MessageThreadStartComplex(channelID, messageID string, data *ThreadStart) (ch *Channel, err error) {
+	endpoint := EndpointChannelMessageThread(channelID, messageID)
+	var body []byte
+	body, err = s.RequestWithBucketID("POST", endpoint, data, endpoint)
+	if err != nil {
+		return
+	}
+
+	err = unmarshal(body, &ch)
+	return
+}
+
+// MessageThreadStart creates a new thread from an existing message.
+// channelID       : Channel to create thread in
+// messageID       : Message to start thread from
+// name            : Name of the thread
+// archiveDuration : Auto archive duration (in minutes)
+func (s *Session) MessageThreadStart(channelID, messageID string, name string, archiveDuration int) (ch *Channel, err error) {
+	return s.MessageThreadStartComplex(channelID, messageID, &ThreadStart{
+		Name:                name,
+		AutoArchiveDuration: archiveDuration,
+	})
+}
+
+// ThreadStartComplex creates a new thread.
+// channelID : Channel to create thread in
+// data : Parameters of the thread
+func (s *Session) ThreadStartComplex(channelID string, data *ThreadStart) (ch *Channel, err error) {
+	endpoint := EndpointChannelThreads(channelID)
+	var body []byte
+	body, err = s.RequestWithBucketID("POST", endpoint, data, endpoint)
+	if err != nil {
+		return
+	}
+
+	err = unmarshal(body, &ch)
+	return
+}
+
+// ThreadStart creates a new thread.
+// channelID       : Channel to create thread in
+// name            : Name of the thread
+// archiveDuration : Auto archive duration (in minutes)
+func (s *Session) ThreadStart(channelID, name string, typ ChannelType, archiveDuration int) (ch *Channel, err error) {
+	return s.ThreadStartComplex(channelID, &ThreadStart{
+		Name:                name,
+		Type:                typ,
+		AutoArchiveDuration: archiveDuration,
+	})
+}
+
+// ThreadJoin adds current user to a thread
+func (s *Session) ThreadJoin(id string) error {
+	endpoint := EndpointThreadMember(id, "@me")
+	_, err := s.RequestWithBucketID("PUT", endpoint, nil, endpoint)
+	return err
+}
+
+// ThreadLeave removes current user to a thread
+func (s *Session) ThreadLeave(id string) error {
+	endpoint := EndpointThreadMember(id, "@me")
+	_, err := s.RequestWithBucketID("DELETE", endpoint, nil, endpoint)
+	return err
+}
+
+// ThreadMemberAdd adds another member to a thread
+func (s *Session) ThreadMemberAdd(threadID, memberID string) error {
+	endpoint := EndpointThreadMember(threadID, memberID)
+	_, err := s.RequestWithBucketID("PUT", endpoint, nil, endpoint)
+	return err
+}
+
+// ThreadMemberRemove removes another member from a thread
+func (s *Session) ThreadMemberRemove(threadID, memberID string) error {
+	endpoint := EndpointThreadMember(threadID, memberID)
+	_, err := s.RequestWithBucketID("DELETE", endpoint, nil, endpoint)
+	return err
+}
+
+// ThreadMember returns thread member object for the specified member of a thread
+func (s *Session) ThreadMember(threadID, memberID string) (member *ThreadMember, err error) {
+	endpoint := EndpointThreadMember(threadID, memberID)
+	var body []byte
+	body, err = s.RequestWithBucketID("GET", endpoint, nil, endpoint)
+
+	if err != nil {
+		return
+	}
+
+	err = unmarshal(body, &member)
+	return
+}
+
+// ThreadMembers returns all members of specified thread.
+func (s *Session) ThreadMembers(threadID string) (members []*ThreadMember, err error) {
+	var body []byte
+	body, err = s.RequestWithBucketID("GET", EndpointThreadMembers(threadID), nil, EndpointThreadMembers(threadID))
+
+	if err != nil {
+		return
+	}
+
+	err = unmarshal(body, &members)
+	return
+}
+
+// ThreadsActive returns all active threads for specified channel.
+func (s *Session) ThreadsActive(channelID string) (threads *ThreadsList, err error) {
+	var body []byte
+	body, err = s.RequestWithBucketID("GET", EndpointChannelActiveThreads(channelID), nil, EndpointChannelActiveThreads(channelID))
+	if err != nil {
+		return
+	}
+
+	err = unmarshal(body, &threads)
+	return
+}
+
+// GuildThreadsActive returns all active threads for specified guild.
+func (s *Session) GuildThreadsActive(guildID string) (threads *ThreadsList, err error) {
+	var body []byte
+	body, err = s.RequestWithBucketID("GET", EndpointGuildActiveThreads(guildID), nil, EndpointGuildActiveThreads(guildID))
+	if err != nil {
+		return
+	}
+
+	err = unmarshal(body, &threads)
+	return
+}
+
+// ThreadsArchived returns archived threads for specified channel.
+// before : If specified returns only threads before the timestamp
+// limit  : Optional maximum amount of threads to return.
+func (s *Session) ThreadsArchived(channelID string, before *time.Time, limit int) (threads *ThreadsList, err error) {
+	endpoint := EndpointChannelPublicArchivedThreads(channelID)
+	v := url.Values{}
+	if before != nil {
+		v.Set("before", before.Format(time.RFC3339))
+	}
+
+	if limit > 0 {
+		v.Set("limit", strconv.Itoa(limit))
+	}
+
+	if len(v) > 0 {
+		endpoint += "?" + v.Encode()
+	}
+
+	var body []byte
+	body, err = s.RequestWithBucketID("GET", endpoint, nil, endpoint)
+	if err != nil {
+		return
+	}
+
+	err = unmarshal(body, &threads)
+	return
+}
+
+// ThreadsPrivateArchived returns archived private threads for specified channel.
+// before : If specified returns only threads before the timestamp
+// limit  : Optional maximum amount of threads to return.
+func (s *Session) ThreadsPrivateArchived(channelID string, before *time.Time, limit int) (threads *ThreadsList, err error) {
+	endpoint := EndpointChannelPrivateArchivedThreads(channelID)
+	v := url.Values{}
+	if before != nil {
+		v.Set("before", before.Format(time.RFC3339))
+	}
+
+	if limit > 0 {
+		v.Set("limit", strconv.Itoa(limit))
+	}
+
+	if len(v) > 0 {
+		endpoint += "?" + v.Encode()
+	}
+	var body []byte
+	body, err = s.RequestWithBucketID("GET", endpoint, nil, endpoint)
+	if err != nil {
+		return
+	}
+
+	err = unmarshal(body, &threads)
+	return
+}
+
+// ThreadsPrivateJoinedArchived returns archived joined private threads for specified channel.
+// before : If specified returns only threads before the timestamp
+// limit  : Optional maximum amount of threads to return.
+func (s *Session) ThreadsPrivateJoinedArchived(channelID string, before *time.Time, limit int) (threads *ThreadsList, err error) {
+	endpoint := EndpointChannelJoinedPrivateArchivedThreads(channelID)
+	v := url.Values{}
+	if before != nil {
+		v.Set("before", before.Format(time.RFC3339))
+	}
+
+	if limit > 0 {
+		v.Set("limit", strconv.Itoa(limit))
+	}
+
+	if len(v) > 0 {
+		endpoint += "?" + v.Encode()
+	}
+	var body []byte
+	body, err = s.RequestWithBucketID("GET", endpoint, nil, endpoint)
+	if err != nil {
+		return
+	}
+
+	err = unmarshal(body, &threads)
 	return
 }
 

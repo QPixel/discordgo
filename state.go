@@ -800,6 +800,7 @@ func (s *State) MessageAdd(message *Message) error {
 	if len(c.Messages) > s.MaxMessageCount {
 		c.Messages = c.Messages[len(c.Messages)-s.MaxMessageCount:]
 	}
+
 	return nil
 }
 
@@ -831,6 +832,7 @@ func (s *State) messageRemoveByID(channelID, messageID string) error {
 				c.MessageCount--
 			}
 			c.Messages = append(c.Messages[:i], c.Messages[i+1:]...)
+
 			return nil
 		}
 	}

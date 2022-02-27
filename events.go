@@ -76,6 +76,7 @@ type ChannelPinsUpdate struct {
 // ThreadCreate is the data for a ThreadCreate event.
 type ThreadCreate struct {
 	*Channel
+	NewlyCreated bool `json:"newly_created"`
 }
 
 // ThreadUpdate is the data for a ThreadUpdate event.
@@ -339,4 +340,18 @@ type InteractionCreate struct {
 // UnmarshalJSON is a helper function to unmarshal Interaction object.
 func (i *InteractionCreate) UnmarshalJSON(b []byte) error {
 	return json.Unmarshal(b, &i.Interaction)
+}
+
+// InviteCreate is the data for a InviteCreate event
+type InviteCreate struct {
+	*Invite
+	ChannelID string `json:"channel_id"`
+	GuildID   string `json:"guild_id"`
+}
+
+// InviteDelete is the data for a InviteDelete event
+type InviteDelete struct {
+	ChannelID string `json:"channel_id"`
+	GuildID   string `json:"guild_id"`
+	Code      string `json:"code"`
 }
