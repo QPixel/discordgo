@@ -1,7 +1,9 @@
 package discordgo
 
 import (
+	"context"
 	"errors"
+	"net/http"
 	"testing"
 )
 
@@ -104,7 +106,7 @@ func TestUserGuilds(t *testing.T) {
 		t.Skip("Cannot TestUserGuilds, dg not set.")
 	}
 
-	_, err := dg.UserGuilds(10, "", "")
+	_, err := dg.UserGuilds(10, "", "", false)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
@@ -234,4 +236,42 @@ func Test_unmarshal(t *testing.T) {
 	if !errors.Is(err, ErrJSONUnmarshal) {
 		t.Errorf("Unexpected error type: %T", err)
 	}
+}
+
+func TestWithContext(t *testing.T) {
+	// Set up a test context.
+	type key struct{}
+	ctx := context.WithValue(context.Background(), key{}, "value")
+
+	// Set up a test client.
+	session, err := New("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testErr := errors.New("test")
+
+	// Intercept the request to assert the context.
+	session.Client.Transport = roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+		val, _ := r.Context().Value(key{}).(string)
+		if val != "value" {
+			t.Errorf("missing value in context (got %q, wanted %q)", val, "value")
+		}
+		return nil, testErr
+	})
+
+	// Run any client method using WithContext.
+	_, err = session.User("", WithContext(ctx))
+
+	// Verify that the assertion code was actually run.
+	if !errors.Is(err, testErr) {
+		t.Errorf("unexpected error %v returned from client", err)
+	}
+}
+
+// roundTripperFunc implements http.RoundTripper.
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
 }

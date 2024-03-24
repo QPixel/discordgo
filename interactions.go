@@ -33,6 +33,7 @@ const (
 type ApplicationCommand struct {
 	ID                string                 `json:"id,omitempty"`
 	ApplicationID     string                 `json:"application_id,omitempty"`
+	GuildID           string                 `json:"guild_id,omitempty"`
 	Version           string                 `json:"version,omitempty"`
 	Type              ApplicationCommandType `json:"type,omitempty"`
 	Name              string                 `json:"name"`
@@ -41,6 +42,7 @@ type ApplicationCommand struct {
 	DefaultPermission        *bool  `json:"default_permission,omitempty"`
 	DefaultMemberPermissions *int64 `json:"default_member_permissions,string,omitempty"`
 	DMPermission             *bool  `json:"dm_permission,omitempty"`
+	NSFW                     *bool  `json:"nsfw,omitempty"`
 
 	// NOTE: Chat commands only. Otherwise it mustn't be set.
 
@@ -117,6 +119,10 @@ type ApplicationCommandOption struct {
 	MinValue *float64 `json:"min_value,omitempty"`
 	// Maximum value of number/integer option.
 	MaxValue float64 `json:"max_value,omitempty"`
+	// Minimum length of string option.
+	MinLength *int `json:"min_length,omitempty"`
+	// Maximum length of string option.
+	MaxLength int `json:"max_length,omitempty"`
 }
 
 // ApplicationCommandOptionChoice represents a slash command option choice.
@@ -206,6 +212,9 @@ type Interaction struct {
 	// The message on which interaction was used.
 	// NOTE: this field is only filled when a button click triggered the interaction. Otherwise it will be nil.
 	Message *Message `json:"message"`
+
+	// Bitwise set of permissions the app or bot has within the channel the interaction was sent from
+	AppPermissions int64 `json:"app_permissions,string"`
 
 	// The member who invoked this interaction.
 	// NOTE: this field is only filled when the slash command was invoked in a guild;
@@ -305,9 +314,10 @@ type InteractionData interface {
 
 // ApplicationCommandInteractionData contains the data of application command interaction.
 type ApplicationCommandInteractionData struct {
-	ID       string                                     `json:"id"`
-	Name     string                                     `json:"name"`
-	Resolved *ApplicationCommandInteractionDataResolved `json:"resolved"`
+	ID          string                                     `json:"id"`
+	Name        string                                     `json:"name"`
+	CommandType ApplicationCommandType                     `json:"type"`
+	Resolved    *ApplicationCommandInteractionDataResolved `json:"resolved"`
 
 	// Slash command options
 	Options []*ApplicationCommandInteractionDataOption `json:"options"`
@@ -335,11 +345,20 @@ func (ApplicationCommandInteractionData) Type() InteractionType {
 
 // MessageComponentInteractionData contains the data of message component interaction.
 type MessageComponentInteractionData struct {
-	CustomID      string        `json:"custom_id"`
-	ComponentType ComponentType `json:"component_type"`
+	CustomID      string                                  `json:"custom_id"`
+	ComponentType ComponentType                           `json:"component_type"`
+	Resolved      MessageComponentInteractionDataResolved `json:"resolved"`
 
 	// NOTE: Only filled when ComponentType is SelectMenuComponent (3). Otherwise is nil.
 	Values []string `json:"values"`
+}
+
+// MessageComponentInteractionDataResolved contains the resolved data of selected option.
+type MessageComponentInteractionDataResolved struct {
+	Users    map[string]*User    `json:"users"`
+	Members  map[string]*Member  `json:"members"`
+	Roles    map[string]*Role    `json:"roles"`
+	Channels map[string]*Channel `json:"channels"`
 }
 
 // Type returns the type of interaction data.
@@ -464,7 +483,7 @@ func (o ApplicationCommandInteractionDataOption) RoleValue(s *Session, gID strin
 		return &Role{ID: roleID}
 	}
 
-	r, err := s.State.Role(roleID, gID)
+	r, err := s.State.Role(gID, roleID)
 	if err != nil {
 		roles, err := s.GuildRoles(gID)
 		if err == nil {
@@ -535,6 +554,7 @@ type InteractionResponseData struct {
 	Embeds          []*MessageEmbed         `json:"embeds"`
 	AllowedMentions *MessageAllowedMentions `json:"allowed_mentions,omitempty"`
 	Files           []*File                 `json:"-"`
+	Attachments     *[]*MessageAttachment   `json:"attachments,omitempty"`
 
 	// NOTE: only MessageFlagsSuppressEmbeds and MessageFlagsEphemeral can be set.
 	Flags MessageFlags `json:"flags,omitempty"`
